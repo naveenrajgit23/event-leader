@@ -55,6 +55,7 @@ const LEADERBOARD_REFRESH_INTERVAL = 5000;  // 5 seconds
 let currentAdmin = null;           // { id, name, phone }
 let currentParticipantEventCode = null;
 let currentParticipantTeam = null;
+let currentParticipantEvents = [];  // All events this participant joined
 let leaderboardInterval = null;
 let adminDashboardEvent = null;
 let adminDashboardInterval = null;
@@ -62,15 +63,32 @@ let resetTimerInterval = null;
 let adminResetTimerInterval = null;
 let confettiSpawned = false;
 
+// ─── Session Persistence ───────────────────────────────────
+function saveAdminSession(admin) {
+    localStorage.setItem('el_admin', JSON.stringify(admin));
+}
+function clearAdminSession() {
+    localStorage.removeItem('el_admin');
+}
+function getAdminSession() {
+    try { return JSON.parse(localStorage.getItem('el_admin')); } catch { return null; }
+}
+function saveParticipantSession(data) {
+    localStorage.setItem('el_participant', JSON.stringify(data));
+}
+function clearParticipantSession() {
+    localStorage.removeItem('el_participant');
+}
+function getParticipantSession() {
+    try { return JSON.parse(localStorage.getItem('el_participant')); } catch { return null; }
+}
+
 // ─── Initialization ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.page').forEach(p => {
         p.style.display = 'none';
         p.classList.remove('active');
     });
-    const landing = document.getElementById('landing-page');
-    landing.style.display = 'flex';
-    landing.classList.add('active');
 
     try {
         await initDB();
@@ -78,7 +96,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
         console.error('DB init error:', err);
         alert('Database initialization failed. Please refresh the page.');
+        return;
     }
+
+    // ── Restore Admin session if exists ──
+    const savedAdmin = getAdminSession();
+    if (savedAdmin) {
+        // Verify admin still exists in DB
+        const admin = await getAdminByPhone(savedAdmin.phone);
+        if (admin) {
+            currentAdmin = admin;
+            document.getElementById('admin-display-name').textContent = admin.name;
+            document.getElementById('admin-avatar').textContent = admin.name.charAt(0).toUpperCase();
+            goto('admin-dashboard');
+            showAdminTab('create-event-tab');
+            loadAdminEvents();
+            return;
+        } else {
+            clearAdminSession();
+        }
+    }
+
+    // ── Restore Participant session if exists ──
+    const savedParticipant = getParticipantSession();
+    if (savedParticipant) {
+        const event = await getEventByCode(savedParticipant.eventCode);
+        if (event && event.isActive) {
+            currentParticipantEventCode = savedParticipant.eventCode;
+            currentParticipantTeam = savedParticipant.team;
+            currentParticipantEvents = savedParticipant.allEvents || [{ code: savedParticipant.eventCode, team: savedParticipant.team }];
+            showParticipantLeaderboard(event);
+            return;
+        } else {
+            clearParticipantSession();
+        }
+    }
+
+    const landing = document.getElementById('landing-page');
+    landing.style.display = 'flex';
+    landing.classList.add('active');
 });
 
 // ─── Page Navigation ──────────────────────────────────────
@@ -134,6 +190,7 @@ async function adminLogin(e) {
     }
 
     currentAdmin = admin;
+    saveAdminSession(admin);  // persist session
     document.getElementById('admin-display-name').textContent = admin.name;
     document.getElementById('admin-avatar').textContent = admin.name.charAt(0).toUpperCase();
     document.getElementById('admin-login-form').reset();
@@ -145,6 +202,7 @@ async function adminLogin(e) {
 function adminLogout() {
     currentAdmin = null;
     adminDashboardEvent = null;
+    clearAdminSession();  // clear session
     stopAdminDashboardRefresh();
     clearInterval(adminResetTimerInterval);
     document.getElementById('admin-login-form').reset();
@@ -667,6 +725,9 @@ function stopAdminDashboardRefresh() {
 async function submitScore() {
     const team = document.getElementById('team-select').value;
     const scoreVal = document.getElementById('score-input').value;
+    const btn = document.getElementById('score-save-btn');
+    const loader = document.getElementById('score-save-loader');
+    const span = btn.querySelector('span');
 
     if (adminDashboardEvent && adminDashboardEvent.winnersDeclaredAt) {
         showScoreFeedback('🔒 Cannot change scores — Round 1 winners already declared.', 'error');
@@ -677,10 +738,24 @@ async function submitScore() {
         showScoreFeedback('Please enter a valid score.', 'error'); return;
     }
 
-    await setScore(team, adminDashboardEvent.code, Number(scoreVal));
-    document.getElementById('score-input').value = '';
-    showScoreFeedback(`✅ Score ${scoreVal} saved for ${team}`, 'success');
-    await refreshAdminDashboard();
+    // Performance fix: Show feedback immediately and don't block
+    btn.disabled = true;
+    loader.classList.remove('hidden');
+    span.style.opacity = '0';
+
+    try {
+        await setScore(team, adminDashboardEvent.code, Number(scoreVal));
+        document.getElementById('score-input').value = '';
+        showScoreFeedback(`✅ Score ${scoreVal} saved for ${team}`, 'success');
+        // Refresh table silently in background
+        refreshAdminDashboard();
+    } catch (err) {
+        showScoreFeedback('❌ Failed to save. Check your connection.', 'error');
+    } finally {
+        btn.disabled = false;
+        loader.classList.add('hidden');
+        span.style.opacity = '1';
+    }
 }
 
 function showScoreFeedback(msg, type) {
@@ -791,6 +866,17 @@ async function registerParticipant(e) {
     currentParticipantEventCode = code;
     currentParticipantTeam = team;
 
+    // Multi-event logic
+    if (!currentParticipantEvents.some(ex => ex.code === code)) {
+        currentParticipantEvents.push({ code: code, name: event.name, team: team });
+    }
+
+    saveParticipantSession({
+        eventCode: code,
+        team: team,
+        allEvents: currentParticipantEvents
+    });
+
     document.getElementById('participant-register-form').reset();
     submitBtn.disabled = false;
     submitBtn.querySelector('span').textContent = 'Join Event';
@@ -803,9 +889,53 @@ function showParticipantLeaderboard(event) {
     document.getElementById('lb-event-name').textContent = event.name;
     document.getElementById('lb-team-name').querySelector('strong').textContent = currentParticipantTeam;
 
+    // Populate switcher if multiple events
+    const switcherContainer = document.getElementById('event-switcher-container');
+    const switcher = document.getElementById('event-switcher');
+
+    if (currentParticipantEvents.length > 1) {
+        switcherContainer.classList.remove('hidden');
+        switcher.innerHTML = currentParticipantEvents.map(ev =>
+            `<option value="${ev.code}" ${ev.code === currentParticipantEventCode ? 'selected' : ''}>${escHtml(ev.name)} (${ev.code})</option>`
+        ).join('');
+    } else {
+        switcherContainer.classList.add('hidden');
+    }
+
     goto('participant-leaderboard');
     renderParticipantLeaderboard();
     startLeaderboardRefresh();
+}
+
+async function switchParticipantEvent(code) {
+    const eventData = currentParticipantEvents.find(e => e.code === code);
+    if (!eventData) return;
+
+    const event = await getEventByCode(code);
+    if (!event) {
+        alert('This event is no longer active.');
+        // Remove from list
+        currentParticipantEvents = currentParticipantEvents.filter(e => e.code !== code);
+        saveParticipantSession({
+            eventCode: currentParticipantEvents[0]?.code || null,
+            team: currentParticipantEvents[0]?.team || null,
+            allEvents: currentParticipantEvents
+        });
+        if (currentParticipantEvents.length === 0) exitLeaderboard();
+        else switchParticipantEvent(currentParticipantEvents[0].code);
+        return;
+    }
+
+    currentParticipantEventCode = code;
+    currentParticipantTeam = eventData.team;
+
+    saveParticipantSession({
+        eventCode: code,
+        team: eventData.team,
+        allEvents: currentParticipantEvents
+    });
+
+    showParticipantLeaderboard(event);
 }
 
 async function renderParticipantLeaderboard() {
@@ -973,6 +1103,8 @@ function exitLeaderboard() {
     stopLeaderboardRefresh();
     currentParticipantEventCode = null;
     currentParticipantTeam = null;
+    currentParticipantEvents = [];
+    clearParticipantSession();  // clear session on explicit exit
     document.getElementById('winner-banner').classList.add('hidden');
     document.getElementById('reset-countdown-banner').classList.add('hidden');
     goto('landing-page');

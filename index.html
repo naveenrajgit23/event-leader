@@ -101,9 +101,16 @@
                     <span class="live-badge">🔴 LIVE</span>
                     <h2 id="lb-event-name">Event Name</h2>
                     <p id="lb-team-name" class="team-tag">Your Team: <strong></strong></p>
-                    <span id="lb-round-label" class="round-label hidden"></span>
                 </div>
-                <div style="width:60px;"></div>
+                <div id="event-switcher-container" class="hidden"
+                    style="margin-top:10px; width: 100%; max-width: 250px;">
+                    <label
+                        style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Switch
+                        Event:</label>
+                    <select id="event-switcher" onchange="switchParticipantEvent(this.value)" class="team-select-dd"
+                        style="padding:8px 12px; font-size:0.85rem; height: auto;">
+                    </select>
+                </div>
             </div>
 
             <!-- Winner Banner -->
@@ -394,7 +401,10 @@
                             </select>
                             <input type="number" id="score-input" placeholder="Enter marks" min="0"
                                 class="score-input-field">
-                            <button class="btn btn-primary" onclick="submitScore()">✅ Save Score</button>
+                            <button class="btn btn-primary" onclick="submitScore()" id="score-save-btn">
+                                <span>✅ Save Score</span>
+                                <div class="btn-loader hidden" id="score-save-loader"></div>
+                            </button>
                         </div>
                         <div id="score-msg" class="score-feedback hidden"></div>
                     </div>
