@@ -1,0 +1,17 @@
+{
+    "name": "Event Leader",
+    "short_name": "EventLeader",
+    "description": "Real-time Event Score Entry & Automatic Leaderboard System",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#05070f",
+    "theme_color": "#6c63ff",
+    "icons": [
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/3112/3112946.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
