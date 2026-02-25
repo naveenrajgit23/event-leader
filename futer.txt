@@ -1,0 +1,6 @@
+💎 Premium UI: Glassmorphism cards, animated background orbs, and professional typography.
+⚡ Real-Time Leaderboard: Automatic ranking updates and live status badges ("Leading", "Winner").
+🔁 Advanced Rounds: Support for both Qualifier (Top N) and Cumulative (R1 + R2) scoring modes.
+🔐 Admin Control: Secure password-protected dashboard to manage scores, declare winners, and track all participants.
+🧹 Smart Cleanup: Total deletion of event data 8 hours after completion to keep the database fresh.
+🛡️ Security: Built-in DevTools restriction and right-click blocking to prevent tampering during live events.

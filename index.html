@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Leader – Score Entry &amp; Leaderboard System</title>
+    <meta name="description"
+        content="Real-time Event Score Entry and Automatic Leaderboard System for competitions and events.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- ══════════════ LANDING PAGE ══════════════ -->
+    <div id="landing-page" class="page active">
+        <div class="landing-container">
+            <div class="hero-badge">🏆 Live Event Platform</div>
+            <h1 class="hero-title">Event Leader<span class="accent">.</span></h1>
+            <p class="hero-subtitle">Real-time Score Entry &amp; Automatic Leaderboard System</p>
+            <p class="hero-desc">Manage competitions effortlessly — track scores, view live rankings, and celebrate
+                winners instantly.</p>
+
+            <div class="landing-cards">
+                <div class="access-card participant-card" id="btn-participation" onclick="goto('participation-form')">
+                    <div class="card-icon">🎯</div>
+                    <h2>Participation</h2>
+                    <p>Register your team and view live leaderboard rankings for your event.</p>
+                    <div class="card-arrow">→</div>
+                </div>
+
+                <div class="access-card admin-card" id="btn-admin" onclick="goto('admin-login')">
+                    <div class="card-icon">⚡</div>
+                    <h2>Admin</h2>
+                    <p>Create events, manage scores, declare winners and control the full event.</p>
+                    <div class="card-arrow">→</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ PARTICIPATION FORM ══════════════ -->
+    <div id="participation-form" class="page">
+        <div class="form-container glass-card">
+            <button class="back-btn" onclick="goto('landing-page')">← Back</button>
+            <div class="form-header">
+                <div class="form-icon">🎯</div>
+                <h2>Join an Event</h2>
+                <p>Enter your details and unique event code to participate</p>
+            </div>
+            <form id="participant-register-form" onsubmit="registerParticipant(event)">
+                <div class="form-group">
+                    <label for="p-name">Full Name <span class="req">*</span></label>
+                    <input type="text" id="p-name" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label for="p-phone">Phone Number <span class="req">*</span></label>
+                    <input type="tel" id="p-phone" placeholder="Enter your phone number" required>
+                </div>
+                <div class="form-group">
+                    <label for="p-team">Team Name <span class="req">*</span></label>
+                    <input type="text" id="p-team" placeholder="Enter your team name" required>
+                </div>
+                <div class="form-group">
+                    <label for="p-code">Unique Event Code <span class="req">*</span></label>
+                    <input type="text" id="p-code" placeholder="Enter 6-digit event code (e.g. AD2508)" maxlength="10"
+                        required style="text-transform:uppercase;">
+                </div>
+                <div id="reg-error" class="error-msg hidden"></div>
+                <div id="reg-dup-error" class="error-msg hidden">⚠️ This team name is already registered for this event.
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" id="reg-submit-btn">
+                    <span>Join Event</span>
+                    <div class="btn-loader hidden"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ══════════════ PARTICIPANT LEADERBOARD ══════════════ -->
+    <div id="participant-leaderboard" class="page">
+        <div class="leaderboard-wrapper">
+            <div class="leaderboard-header">
+                <button class="back-btn-light" onclick="exitLeaderboard()">← Exit</button>
+                <div class="event-meta">
+                    <span class="live-badge">🔴 LIVE</span>
+                    <h2 id="lb-event-name">Event Name</h2>
+                    <p id="lb-team-name" class="team-tag">Your Team: <strong></strong></p>
+                    <span id="lb-round-label" class="round-label hidden"></span>
+                </div>
+                <div style="width:60px;"></div>
+            </div>
+
+            <!-- Winner Banner -->
+            <div id="winner-banner" class="winner-banner hidden">
+                <div class="confetti-area" id="confetti-area"></div>
+                <div class="winner-content">
+                    <div class="trophy">🏆</div>
+                    <h2>Winners Announced!</h2>
+                    <p id="winner-desc">Congratulations to the top teams!</p>
+                </div>
+            </div>
+
+            <div class="leaderboard-card glass-card">
+                <div class="lb-title-row">
+                    <h3>🏅 Live Rankings</h3>
+                </div>
+                <div class="lb-table-wrap">
+                    <table class="lb-table">
+                        <thead id="leaderboard-thead">
+                            <tr>
+                                <th>Rank</th>
+                                <th>Team</th>
+                                <th>Score</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <tr>
+                                <td colspan="4" class="empty-state">Loading rankings...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="reset-countdown-banner" class="reset-banner hidden">
+                <span>⏳ Event resets in: </span><strong id="reset-timer-display">08:00:00</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ ADMIN LOGIN ══════════════ -->
+    <div id="admin-login" class="page">
+        <div class="form-container glass-card">
+            <button class="back-btn" onclick="goto('landing-page')">← Back</button>
+            <div class="form-header">
+                <div class="form-icon">⚡</div>
+                <h2>Admin Login</h2>
+                <p>Login with your name &amp; phone number — first time auto-registers you</p>
+            </div>
+            <form id="admin-login-form" onsubmit="adminLogin(event)">
+                <div class="form-group">
+                    <label for="admin-name">Admin Name <span class="req">*</span></label>
+                    <input type="text" id="admin-name" placeholder="Enter your name" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin-phone-login">Phone Number <span class="req">*</span></label>
+                    <input type="tel" id="admin-phone-login" placeholder="Enter your phone number" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin-pass">Password <span class="req">*</span></label>
+                    <div class="pass-wrap">
+                        <input type="password" id="admin-pass" placeholder="Enter password" required>
+                        <button type="button" class="btn-toggle-pass" onclick="togglePass()">👁</button>
+                    </div>
+                </div>
+                <div id="login-error" class="error-msg hidden"></div>
+                <button type="submit" class="btn btn-primary btn-full">🔐 Login as Admin</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ══════════════ ADMIN DASHBOARD ══════════════ -->
+    <div id="admin-dashboard" class="page">
+        <div class="admin-layout">
+            <aside class="admin-sidebar">
+                <div class="sidebar-brand">
+                    <span class="brand-icon">⚡</span>
+                    <span class="brand-name">Event Leader</span>
+                </div>
+                <div class="admin-info">
+                    <div class="admin-avatar" id="admin-avatar">A</div>
+                    <span id="admin-display-name">Admin</span>
+                </div>
+                <nav class="sidebar-nav">
+                    <button class="nav-btn active" id="nav-create" onclick="showAdminTab('create-event-tab')">
+                        <span>➕</span> Create Event
+                    </button>
+                    <button class="nav-btn" id="nav-events" onclick="showAdminTab('events-tab'); loadAdminEvents()">
+                        <span>📋</span> My Events
+                    </button>
+                </nav>
+                <button class="logout-btn" onclick="adminLogout()">🚪 Logout</button>
+            </aside>
+
+            <main class="admin-main">
+                <!-- ── Create Event Tab ── -->
+                <div id="create-event-tab" class="admin-tab active">
+                    <div class="tab-header">
+                        <h2>Create New Event</h2>
+                        <p>Set up a new competition event with a unique code</p>
+                    </div>
+                    <div class="create-event-card glass-card">
+                        <form id="create-event-form" onsubmit="handleCreateEvent(event)">
+                            <div class="form-group">
+                                <label for="event-name-input">Event Name <span class="req">*</span></label>
+                                <input type="text" id="event-name-input" placeholder="e.g. Robo Race" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Unique Event Code</label>
+                                <div class="code-generate-row">
+                                    <input type="text" id="event-code-display" placeholder="Click Generate" readonly
+                                        class="code-input">
+                                    <button type="button" class="btn btn-secondary" onclick="generateCode()">🎲
+                                        Generate</button>
+                                </div>
+                                <small class="hint">Auto-generated 6-digit alphanumeric code (e.g. AD2508)</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-full">🚀 Create Event</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ── My Events Tab ── -->
+                <div id="events-tab" class="admin-tab">
+                    <div class="tab-header">
+                        <h2>My Events</h2>
+                        <p>Only your created events are shown here</p>
+                    </div>
+                    <div id="events-list" class="events-grid">
+                        <div class="empty-state-card">No events created yet. Go to "Create Event" to get started!</div>
+                    </div>
+                </div>
+
+                <!-- ── Event Dashboard Tab ── -->
+                <div id="event-dashboard-tab" class="admin-tab">
+                    <div class="tab-header-row">
+                        <div>
+                            <button class="back-inline-btn" onclick="showAdminTab('events-tab'); loadAdminEvents()">←
+                                All Events</button>
+                            <h2 id="active-event-name">Event Dashboard</h2>
+                            <div class="event-code-badge">Code: <strong id="active-event-code">------</strong></div>
+                        </div>
+                        <div class="event-status-badge" id="event-status-badge">Active</div>
+                    </div>
+
+                    <!-- ── Round 1 Winner Declaration ── -->
+                    <div id="winner-declare-section" class="glass-card section-card">
+                        <h3>🏆 Round 1 – Winner Declaration</h3>
+                        <div id="winner-already-declared" class="hidden">
+                            <p class="winner-declared-msg">✅ Round 1 Winners have been declared. Event resets in:
+                                <strong id="admin-reset-timer">08:00:00</strong>
+                            </p>
+                        </div>
+                        <div id="winner-declare-form">
+                            <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:14px;">
+                                After declaring winners, Round 2 options (Qualifier / Cumulative) will unlock below.
+                            </p>
+                            <div class="declare-row">
+                                <input type="number" id="winner-count" placeholder="Top N winners (e.g. 5)" min="1"
+                                    class="winner-count-input">
+                                <button class="btn btn-gold" onclick="declareWinners()">🏆 Declare R1 Winner</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Round 2 Control Section (Static for stability) ── -->
+                    <div id="round-control-container">
+                        <!-- Setup Section -->
+                        <div id="r2-setup-section" class="glass-card section-card hidden">
+                            <h3>🔁 Round 2 Setup</h3>
+                            <p style="color:var(--text-muted);margin-bottom:20px;font-size:0.95rem;">
+                                Round 1 winners declared. Now choose how to start Round 2 for this event.
+                            </p>
+                            <div class="round2-btn-row">
+                                <div class="round2-option-card" onclick="showQualifierSetup()">
+                                    <div class="r2-icon">🎯</div>
+                                    <h4>Qualifier</h4>
+                                    <p>Select top N participants from Round 1 to advance</p>
+                                </div>
+                                <div class="round2-option-card cumulative-option" onclick="showCumulativeSetup()">
+                                    <div class="r2-icon">📊</div>
+                                    <h4>Cumulative</h4>
+                                    <p>All participants advance. Final score = R1 + R2</p>
+                                </div>
+                            </div>
+
+                            <div id="qualifier-setup-ui" class="hidden" style="margin-top:24px;">
+                                <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:12px;">
+                                    Total Participants in R1: <strong style="color:#fff;"
+                                        id="qualifier-total-count-display">0</strong>
+                                </p>
+                                <div class="declare-row">
+                                    <input type="number" id="qualifier-topn-input" class="winner-count-input"
+                                        placeholder="Top N (e.g. 5)" min="1">
+                                    <button class="btn btn-primary" onclick="startQualifierRound2()">🎯 Start Qualifier
+                                        R2</button>
+                                </div>
+                            </div>
+
+                            <div id="cumulative-setup-ui" class="hidden" style="margin-top:24px;">
+                                <p style="color:var(--green);font-size:0.9rem;margin-bottom:16px;">
+                                    ✅ All <strong id="cumulative-all-count-display">0</strong> participants will
+                                    advance.
+                                </p>
+                                <button class="btn btn-primary" onclick="startCumulativeRound2()">📊 Start Cumulative
+                                    R2</button>
+                            </div>
+                        </div>
+
+                        <!-- Round 2 Active Section -->
+                        <div id="r2-active-section" class="glass-card section-card round2-active-card hidden">
+                            <div class="round2-header-row">
+                                <h3>🔁 Round 2 — Active</h3>
+                                <span id="r2-mode-badge-display" class="round2-mode-badge">Mode</span>
+                            </div>
+                            <p style="color:var(--text-muted);font-size:0.88rem;margin-bottom:20px;">
+                                Teams in Round 2: <strong id="r2-teams-list-display" style="color:#fff;">None</strong>
+                            </p>
+
+                            <div id="r2-score-entry-area" style="margin-bottom:24px;">
+                                <h4 style="margin-bottom:14px;font-size:1rem;">📝 Round 2 Score Entry</h4>
+                                <div id="r2-locked-notice" class="score-locked-notice hidden">🔒 R2 scores locked —
+                                    winners declared.</div>
+                                <div id="r2-score-entry-controls" class="score-entry-row">
+                                    <select id="r2-team-dropdown" class="team-select-dd">
+                                        <option value="">-- Select Team --</option>
+                                    </select>
+                                    <input type="number" id="r2-score-val-input" placeholder="Marks" min="0"
+                                        class="score-input-field">
+                                    <button class="btn btn-primary" onclick="submitScoreR2()">✅ Save Score</button>
+                                </div>
+                                <div id="r2-score-msg-feedback" class="score-feedback hidden"></div>
+                            </div>
+
+                            <div id="r2-winners-area">
+                                <h4 style="margin-bottom:14px;font-size:1rem;">🏆 Round 2 Winner Declaration</h4>
+                                <div id="r2-winners-set-msg" class="hidden">
+                                    <p class="winner-declared-msg">✅ Round 2 winners declared!</p>
+                                </div>
+                                <div id="r2-winners-form" class="declare-row">
+                                    <input type="number" id="r2-winner-count-final" placeholder="Winners count" min="1"
+                                        class="winner-count-input">
+                                    <button class="btn btn-gold" onclick="declareWinnersR2()">🏆 Declare
+                                        Winners</button>
+                                </div>
+                            </div>
+
+                            <div style="margin-top:24px;">
+                                <h4 style="margin-bottom:14px;font-size:1rem;">🏅 Round 2 Leaderboard</h4>
+                                <div class="lb-table-wrap">
+                                    <table class="lb-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Rank</th>
+                                                <th>Team</th>
+                                                <th>R1</th>
+                                                <th>R2</th>
+                                                <th id="r2-final-col-header" class="hidden">Final Score</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="r2-leaderboard-body"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Waiting Section -->
+                        <div id="r2-waiting-section" class="glass-card section-card"
+                            style="border:1px dashed rgba(255,255,255,0.1);">
+                            <h3>🔁 Round 2</h3>
+                            <p style="color:var(--text-muted);font-size:0.9rem;">
+                                Declare Round 1 winners first to unlock Round 2 options.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- ── Round 1 Score Entry ── -->
+                    <div class="glass-card section-card" id="score-entry-section">
+                        <h3>📝 Round 1 – Score Entry</h3>
+                        <div id="score-locked-notice" class="score-locked-notice hidden">
+                            🔒 R1 Score entry is locked — Round 1 winners have been declared.
+                        </div>
+                        <div id="score-entry-controls" class="score-entry-row">
+                            <select id="team-select" class="team-select-dd">
+                                <option value="">-- Select Team --</option>
+                            </select>
+                            <input type="number" id="score-input" placeholder="Enter marks" min="0"
+                                class="score-input-field">
+                            <button class="btn btn-primary" onclick="submitScore()">✅ Save Score</button>
+                        </div>
+                        <div id="score-msg" class="score-feedback hidden"></div>
+                    </div>
+
+                    <!-- ── Participants List ── -->
+                    <div class="glass-card section-card">
+                        <h3>👥 Participants (<span id="participant-count">0</span>)</h3>
+                        <div class="participants-table-wrap">
+                            <table class="lb-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Team</th>
+                                        <th>Phone</th>
+                                        <th>Joined</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="participants-list-body">
+                                    <tr>
+                                        <td colspan="5" class="empty-state">No participants yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ── Round 1 Admin Leaderboard ── -->
+                    <div class="glass-card section-card">
+                        <h3>🏅 Round 1 – Live Leaderboard</h3>
+                        <div class="lb-table-wrap">
+                            <table class="lb-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Team</th>
+                                        <th>Score</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-leaderboard-body">
+                                    <tr>
+                                        <td colspan="4" class="empty-state">No scores yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
