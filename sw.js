@@ -1,4 +1,4 @@
-const CACHE_NAME = 'event-leader-v1';
+const CACHE_NAME = 'event-leader-v1.3.0';
 const ASSETS = [
     './',
     './index.html',
@@ -15,8 +15,22 @@ self.addEventListener('install', (e) => {
     );
 });
 
+self.addEventListener('activate', (e) => {
+    e.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
+});
+
 self.addEventListener('fetch', (e) => {
     e.respondWith(
-        caches.match(e.request).then((res) => res || fetch(e.request))
+        fetch(e.request).catch(() => caches.match(e.request))
     );
 });
