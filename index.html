@@ -17,6 +17,7 @@
             navigator.serviceWorker.register('sw.js');
         }
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 <body>
@@ -265,12 +266,19 @@
 
                 <!-- ── Event Dashboard Tab ── -->
                 <div id="event-dashboard-tab" class="admin-tab">
-                    <div class="tab-header-row">
+                    <div class="tab-header-row" style="align-items: flex-start;">
                         <div>
                             <button class="back-inline-btn" onclick="showAdminTab('events-tab'); loadAdminEvents()">←
                                 All Events</button>
                             <h2 id="active-event-name">Event Dashboard</h2>
                             <div class="event-code-badge">Code: <strong id="active-event-code">------</strong></div>
+                            <div
+                                style="margin-top: 15px; background: white; padding: 10px; border-radius: 8px; display: inline-block;">
+                                <div id="event-qrcode"></div>
+                            </div>
+                            <div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-muted);">
+                                Ask participants to scan to join directly
+                            </div>
                         </div>
                         <div class="event-status-badge" id="event-status-badge">Active</div>
                     </div>

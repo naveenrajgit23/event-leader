@@ -132,6 +132,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // ── Check if opened via QR Code link ──
+    const urlParams = new URLSearchParams(window.location.search);
+    const joinCodeParams = urlParams.get('join');
+    if (joinCodeParams) {
+        // Pre-fill the input
+        const codeInput = document.getElementById('p-code');
+        if (codeInput) {
+            codeInput.value = joinCodeParams.toUpperCase();
+        }
+
+        // Remove the parameter from the URL cleanly
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({ path: newUrl }, '', newUrl);
+
+        goto('participation-form');
+        return;
+    }
+
     const landing = document.getElementById('landing-page');
     landing.style.display = 'flex';
     landing.classList.add('active');
@@ -314,6 +332,22 @@ async function openEventDashboard(code) {
     showAdminTab('event-dashboard-tab');
     refreshAdminDashboard();
     startAdminDashboardRefresh();
+
+    // Generate QR Code
+    const qrContainer = document.getElementById('event-qrcode');
+    if (qrContainer) {
+        qrContainer.innerHTML = '';
+        const joinUrl = new URL(window.location.href);
+        joinUrl.searchParams.set('join', code);
+        new QRCode(qrContainer, {
+            text: joinUrl.href,
+            width: 128,
+            height: 128,
+            colorDark: "#05070f",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    }
 
     // Winners UI
     if (adminDashboardEvent.winnersDeclaredAt) {
