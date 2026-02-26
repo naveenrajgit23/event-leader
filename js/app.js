@@ -658,18 +658,22 @@ async function refreshAdminDashboard() {
 
     // Team select for R1 scores
     const teamSelect = document.getElementById('team-select');
-    const currentVal = teamSelect.value;
-    teamSelect.innerHTML = '<option value="">-- Select Team --</option>';
     const teamsInLb = await getLeaderboard(code);
     const teamsWithScores = new Set(teamsInLb.map(s => s.teamName));
     const allTeams = [...new Set(participants.map(p => p.teamName))];
+
+    let newOptionsHtml = '<option value="">-- Select Team --</option>';
     allTeams.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t;
-        opt.textContent = t + (teamsWithScores.has(t) ? ` (${teamsInLb.find(s => s.teamName === t)?.score ?? 0} pts)` : ' (no score)');
-        teamSelect.appendChild(opt);
+        const scoreDisp = teamsWithScores.has(t) ? ` (${teamsInLb.find(s => s.teamName === t)?.score ?? 0} pts)` : ' (no score)';
+        newOptionsHtml += `<option value="${escHtml(t)}">${escHtml(t + scoreDisp)}</option>`;
     });
-    if (currentVal) teamSelect.value = currentVal;
+
+    if (teamSelect.getAttribute('data-last-html') !== newOptionsHtml) {
+        const currentVal = teamSelect.value;
+        teamSelect.innerHTML = newOptionsHtml;
+        if (currentVal) teamSelect.value = currentVal;
+        teamSelect.setAttribute('data-last-html', newOptionsHtml);
+    }
 
     // Admin R1 leaderboard
     const lb = await getLeaderboard(code);
