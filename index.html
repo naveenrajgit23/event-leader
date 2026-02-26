@@ -57,7 +57,7 @@
     <!-- ══════════════ PARTICIPATION FORM ══════════════ -->
     <div id="participation-form" class="page">
         <div class="form-container glass-card">
-            <button class="back-btn" onclick="goto('landing-page')">← Back</button>
+            <button class="back-btn" onclick="gotoParticipantBack()">← Back</button>
             <div class="form-header">
                 <div class="form-icon">🎯</div>
                 <h2>Join an Event</h2>
@@ -82,7 +82,8 @@
                         required style="text-transform:uppercase;">
                 </div>
                 <div id="reg-error" class="error-msg hidden"></div>
-                <div id="reg-dup-error" class="error-msg hidden">⚠️ This team name is already registered for this event.
+                <div id="reg-dup-error" class="error-msg hidden">⚠️ You have already registered for this event with this
+                    phone number.
                 </div>
                 <button type="submit" class="btn btn-primary btn-full" id="reg-submit-btn">
                     <span>Join Event</span>
@@ -107,9 +108,14 @@
                     <label
                         style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Switch
                         Event:</label>
-                    <select id="event-switcher" onchange="switchParticipantEvent(this.value)" class="team-select-dd"
-                        style="padding:8px 12px; font-size:0.85rem; height: auto;">
-                    </select>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="event-switcher" onchange="switchParticipantEvent(this.value)" class="team-select-dd"
+                            style="padding:8px 12px; font-size:0.85rem; height: auto; flex: 1;">
+                        </select>
+                        <button class="btn btn-secondary" onclick="goto('participation-form')"
+                            style="padding: 8px 12px; font-size: 0.85rem; height: auto; white-space: nowrap;">➕
+                            Join</button>
+                    </div>
                 </div>
             </div>
 

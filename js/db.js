@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'EventProDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 let db = null;
 
 async function initDB() {
@@ -26,7 +26,13 @@ async function initDB() {
             if (!database.objectStoreNames.contains('participants')) {
                 const pStore = database.createObjectStore('participants', { keyPath: 'id', autoIncrement: true });
                 pStore.createIndex('eventCode', 'eventCode', { unique: false });
-                pStore.createIndex('teamName_code', ['teamName', 'eventCode'], { unique: true });
+                pStore.createIndex('teamName_code', ['teamName', 'eventCode'], { unique: false });
+            } else if (e.oldVersion < 4) {
+                const pStore = e.target.transaction.objectStore('participants');
+                if (pStore.indexNames.contains('teamName_code')) {
+                    pStore.deleteIndex('teamName_code');
+                }
+                pStore.createIndex('teamName_code', ['teamName', 'eventCode'], { unique: false });
             }
             if (!database.objectStoreNames.contains('scores')) {
                 const sStore = database.createObjectStore('scores', { keyPath: 'id', autoIncrement: true });
@@ -131,9 +137,9 @@ async function getParticipantsByEvent(eventCode) {
     return await dbGetByIndex('participants', 'eventCode', eventCode);
 }
 
-async function isTeamRegistered(teamName, eventCode) {
+async function isParticipantRegistered(phone, eventCode) {
     const list = await getParticipantsByEvent(eventCode);
-    return list.some(p => p.teamName === teamName);
+    return list.some(p => p.phone === phone);
 }
 
 // ─── Score Operations ──────────────────────────────

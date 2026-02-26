@@ -138,6 +138,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ─── Page Navigation ──────────────────────────────────────
+function gotoParticipantBack() {
+    if (currentParticipantEventCode) {
+        goto('participant-leaderboard');
+    } else {
+        goto('landing-page');
+    }
+}
+
 function goto(pageId) {
     document.querySelectorAll('.page').forEach(p => {
         p.style.display = 'none';
@@ -546,6 +554,13 @@ async function refreshR2Leaderboard() {
     const lbR1 = await getLeaderboard(ev.code);
     const lbR2 = await getLeaderboardR2(ev.code);
 
+    const participants = await getParticipantsByEvent(ev.code);
+    const teamMembersMap = {};
+    participants.forEach(p => {
+        if (!teamMembersMap[p.teamName]) teamMembersMap[p.teamName] = [];
+        teamMembersMap[p.teamName].push(p.name);
+    });
+
     // Build map of R1 scores
     const r1Map = {};
     lbR1.forEach(s => { r1Map[s.teamName] = s.score; });
@@ -593,10 +608,14 @@ async function refreshR2Leaderboard() {
             else finalCol.classList.add('hidden');
         }
 
+        const membersDisp = teamMembersMap[entry.team] ? teamMembersMap[entry.team].join(', ') : '';
         return `
       <tr class="${rank <= 3 ? 'rank-' + rank : ''} ${isWinner ? 'winner-row' : ''}">
         <td>${badge}</td>
-        <td>${escHtml(entry.team)} ${isWinner ? '🏆' : ''}</td>
+        <td>
+          <div>${escHtml(entry.team)} ${isWinner ? '🏆' : ''}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">${escHtml(membersDisp)}</div>
+        </td>
         <td class="score-val" style="color:#8892b0;">${entry.r1}</td>
         <td class="score-val">${r2Display}</td>
         ${isCumulative ? `<td class="score-val">${finalDisplay}</td>` : ''}
@@ -660,14 +679,24 @@ async function refreshAdminDashboard() {
     if (!lb.length) {
         aLbBody.innerHTML = '<tr><td colspan="4" class="empty-state">No scores yet</td></tr>';
     } else {
+        const teamMembersMap = {};
+        participants.forEach(p => {
+            if (!teamMembersMap[p.teamName]) teamMembersMap[p.teamName] = [];
+            teamMembersMap[p.teamName].push(p.name);
+        });
+
         aLbBody.innerHTML = lb.map((entry, idx) => {
             const rank = idx + 1;
             const isWinner = winCount > 0 && rank <= winCount;
             const badge = getRankBadge(rank);
+            const membersDisp = teamMembersMap[entry.teamName] ? teamMembersMap[entry.teamName].join(', ') : '';
             return `
         <tr class="${rank <= 3 ? 'rank-' + rank : ''} ${isWinner ? 'winner-row' : ''}">
           <td>${badge}</td>
-          <td>${escHtml(entry.teamName)} ${isWinner ? '🏆' : ''}</td>
+          <td>
+            <div>${escHtml(entry.teamName)} ${isWinner ? '🏆' : ''}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${escHtml(membersDisp)}</div>
+          </td>
           <td class="score-val">${entry.score}</td>
           <td>${isWinner ? '<span style="color:#f5c842;font-weight:600;">R1 Winner</span>' : '—'}</td>
         </tr>
@@ -853,7 +882,7 @@ async function registerParticipant(e) {
         return;
     }
 
-    const isDup = await isTeamRegistered(team, code);
+    const isDup = await isParticipantRegistered(phone, code);
     if (isDup) {
         dupEl.classList.remove('hidden');
         submitBtn.disabled = false;
@@ -893,13 +922,15 @@ function showParticipantLeaderboard(event) {
     const switcherContainer = document.getElementById('event-switcher-container');
     const switcher = document.getElementById('event-switcher');
 
+    switcherContainer.classList.remove('hidden');
     if (currentParticipantEvents.length > 1) {
-        switcherContainer.classList.remove('hidden');
+        switcher.disabled = false;
         switcher.innerHTML = currentParticipantEvents.map(ev =>
             `<option value="${ev.code}" ${ev.code === currentParticipantEventCode ? 'selected' : ''}>${escHtml(ev.name)} (${ev.code})</option>`
         ).join('');
     } else {
-        switcherContainer.classList.add('hidden');
+        switcher.disabled = true;
+        switcher.innerHTML = `<option value="${event.code}">${escHtml(event.name)} (${event.code})</option>`;
     }
 
     goto('participant-leaderboard');
@@ -969,6 +1000,13 @@ async function renderParticipantLeaderboard() {
     const lbR2 = isRound2 ? await getLeaderboardR2(currentParticipantEventCode) : [];
     const tbody = document.getElementById('leaderboard-body');
 
+    const participants = await getParticipantsByEvent(currentParticipantEventCode);
+    const teamMembersMap = {};
+    participants.forEach(p => {
+        if (!teamMembersMap[p.teamName]) teamMembersMap[p.teamName] = [];
+        teamMembersMap[p.teamName].push(p.name);
+    });
+
     let displayList;
 
     if (isRound2) {
@@ -1024,13 +1062,17 @@ async function renderParticipantLeaderboard() {
             const isMyTeam = entry.teamName === currentParticipantTeam;
             const badge = getRankBadge(rank);
             const scoreDisp = entry.score !== null ? entry.score.toFixed(entry.score % 1 === 0 ? 0 : 1) : '—';
+            const membersDisp = teamMembersMap[entry.teamName] ? teamMembersMap[entry.teamName].join(', ') : '';
 
             if (isRound2 && event.round2Mode === 'cumulative') {
                 return `
           <tr class="${rank <= 3 ? 'rank-' + rank : ''} ${isWinner ? 'winner-row' : ''}" 
               style="${isMyTeam ? 'outline:2px solid var(--accent);outline-offset:-1px;' : ''}">
             <td>${badge}</td>
-            <td>${escHtml(entry.teamName)} ${isMyTeam ? '<span style="color:var(--accent);font-size:0.75rem;">(You)</span>' : ''} ${isWinner ? '🏆' : ''}</td>
+            <td>
+              <div>${escHtml(entry.teamName)} ${isMyTeam ? '<span style="color:var(--accent);font-size:0.75rem;">(You)</span>' : ''} ${isWinner ? '🏆' : ''}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${escHtml(membersDisp)}</div>
+            </td>
             <td style="color:#8892b0;">${entry.r1 ?? '—'}</td>
             <td>${entry.r2 !== null ? entry.r2 : '—'}</td>
             <td class="score-val">${scoreDisp}</td>
@@ -1041,7 +1083,10 @@ async function renderParticipantLeaderboard() {
           <tr class="${rank <= 3 ? 'rank-' + rank : ''} ${isWinner ? 'winner-row' : ''}" 
               style="${isMyTeam ? 'outline:2px solid var(--accent);outline-offset:-1px;' : ''}">
             <td>${badge}</td>
-            <td>${escHtml(entry.teamName)} ${isMyTeam ? '<span style="color:var(--accent);font-size:0.75rem;">(You)</span>' : ''} ${isWinner ? '🏆' : ''}</td>
+            <td>
+              <div>${escHtml(entry.teamName)} ${isMyTeam ? '<span style="color:var(--accent);font-size:0.75rem;">(You)</span>' : ''} ${isWinner ? '🏆' : ''}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${escHtml(membersDisp)}</div>
+            </td>
             <td style="color:#8892b0;">${entry.r1 ?? '—'}</td>
             <td class="score-val">${entry.r2 !== null ? entry.r2 : '—'}</td>
             <td>${isWinner ? '<span style="color:#f5c842;font-weight:600;">Winner! 🥇</span>' : (rank === 1 && entry.score !== null ? '<span style="color:#f5c842;">Leading</span>' : '—')}</td>
@@ -1051,7 +1096,10 @@ async function renderParticipantLeaderboard() {
           <tr class="${rank <= 3 ? 'rank-' + rank : ''} ${isWinner ? 'winner-row' : ''}" 
               style="${isMyTeam ? 'outline:2px solid var(--accent);outline-offset:-1px;' : ''}">
             <td>${badge}</td>
-            <td>${escHtml(entry.teamName)} ${isMyTeam ? '<span style="color:var(--accent);font-size:0.75rem;">(You)</span>' : ''} ${isWinner ? '🏆' : ''}</td>
+            <td>
+              <div>${escHtml(entry.teamName)} ${isMyTeam ? '<span style="color:var(--accent);font-size:0.75rem;">(You)</span>' : ''} ${isWinner ? '🏆' : ''}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${escHtml(membersDisp)}</div>
+            </td>
             <td class="score-val">${scoreDisp}</td>
             <td>${isWinner ? '<span style="color:#f5c842;font-weight:600;">Winner! 🥇</span>' : (rank === 1 ? '<span style="color:#f5c842;">Leading</span>' : '—')}</td>
           </tr>`;
